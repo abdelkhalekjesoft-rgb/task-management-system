@@ -29,4 +29,54 @@ class TaskFactory extends Factory
             'due_date' => fake()->optional()->dateTimeBetween('-1 week', '+1 month')?->format('Y-m-d'),
         ];
     }
+
+    public function lowPriority(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'priority' => TaskPriority::Low,
+        ]);
+    }
+
+    public function mediumPriority(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'priority' => TaskPriority::Medium,
+        ]);
+    }
+
+    public function highPriority(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'priority' => TaskPriority::High,
+        ]);
+    }
+
+    public function todo(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'status' => TaskStatus::Todo,
+        ]);
+    }
+
+    public function inProgress(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'status' => TaskStatus::InProgress,
+        ]);
+    }
+
+    public function done(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'status' => TaskStatus::Done,
+        ]);
+    }
+
+    public function overdue(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'status' => TaskStatus::Todo,
+            'due_date' => now()->subDays(fake()->numberBetween(1, 10))->toDateString(),
+        ]);
+    }
 }

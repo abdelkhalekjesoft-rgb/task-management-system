@@ -26,4 +26,25 @@ class ProjectFactory extends Factory
             'status' => fake()->randomElement(ProjectStatus::cases()),
         ];
     }
+
+    public function active(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'status' => ProjectStatus::Active,
+        ]);
+    }
+
+    public function completed(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'status' => ProjectStatus::Completed,
+        ]);
+    }
+
+    public function archived(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'status' => ProjectStatus::Archived,
+        ]);
+    }
 }
