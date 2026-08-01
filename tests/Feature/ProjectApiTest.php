@@ -43,8 +43,8 @@ class ProjectApiTest extends TestCase
         $user = User::factory()->create();
         $otherUser = User::factory()->create();
 
-        Project::factory()->count(2)->create(['user_id' => $user->id]);
-        Project::factory()->create(['user_id' => $otherUser->id]);
+        $ownedProjects = Project::factory()->count(2)->create(['user_id' => $user->id]);
+        $otherProject = Project::factory()->create(['user_id' => $otherUser->id]);
 
         Sanctum::actingAs($user);
 
@@ -62,6 +62,11 @@ class ProjectApiTest extends TestCase
                 'links',
                 'meta',
             ]);
+
+        $responseProjectIds = collect($response->json('data'))->pluck('id');
+
+        $this->assertEqualsCanonicalizing($ownedProjects->pluck('id')->all(), $responseProjectIds->all());
+        $this->assertNotContains($otherProject->id, $responseProjectIds);
     }
 
     public function test_user_can_view_their_project(): void
@@ -91,6 +96,25 @@ class ProjectApiTest extends TestCase
             ->assertForbidden();
     }
 
+    public function test_user_can_view_project_with_same_id_only_when_they_own_it(): void
+    {
+        $ownedProject = Project::factory()->create([
+            'name' => 'Owned Project',
+        ]);
+        $otherProject = Project::factory()->create([
+            'name' => 'Private Project',
+        ]);
+
+        Sanctum::actingAs($ownedProject->user);
+
+        $this->getJson("/api/projects/{$ownedProject->id}")
+            ->assertOk()
+            ->assertJsonPath('data.name', 'Owned Project');
+
+        $this->getJson("/api/projects/{$otherProject->id}")
+            ->assertForbidden();
+    }
+
     public function test_user_can_update_their_project(): void
     {
         $project = Project::factory()->create([
@@ -114,14 +138,24 @@ class ProjectApiTest extends TestCase
 
     public function test_user_cannot_update_another_users_project(): void
     {
-        $project = Project::factory()->create();
+        $project = Project::factory()->create([
+            'name' => 'Original Project',
+            'status' => ProjectStatus::Active,
+        ]);
         $user = User::factory()->create();
 
         Sanctum::actingAs($user);
 
         $this->putJson("/api/projects/{$project->id}", [
             'name' => 'Not Allowed',
+            'status' => ProjectStatus::Archived->value,
         ])->assertForbidden();
+
+        $this->assertDatabaseHas('projects', [
+            'id' => $project->id,
+            'name' => 'Original Project',
+            'status' => ProjectStatus::Active->value,
+        ]);
     }
 
     public function test_user_can_delete_their_project(): void
@@ -138,6 +172,22 @@ class ProjectApiTest extends TestCase
 
         $this->assertSoftDeleted('projects', [
             'id' => $project->id,
+        ]);
+    }
+
+    public function test_user_cannot_delete_another_users_project(): void
+    {
+        $project = Project::factory()->create();
+        $user = User::factory()->create();
+
+        Sanctum::actingAs($user);
+
+        $this->deleteJson("/api/projects/{$project->id}")
+            ->assertForbidden();
+
+        $this->assertDatabaseHas('projects', [
+            'id' => $project->id,
+            'deleted_at' => null,
         ]);
     }
 
