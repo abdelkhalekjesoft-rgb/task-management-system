@@ -19,14 +19,15 @@ class AuthController extends Controller
         $user = User::query()->create($request->validated());
         $token = $user->createToken('api-token')->plainTextToken;
 
-        return response()->json([
-            'message' => 'User registered successfully.',
-            'data' => [
+        return $this->success(
+            [
                 'user' => new UserResource($user),
                 'token' => $token,
                 'token_type' => 'Bearer',
             ],
-        ], 201);
+            'User registered successfully.',
+            201
+        );
     }
 
     public function login(LoginRequest $request): JsonResponse
@@ -45,22 +46,20 @@ class AuthController extends Controller
 
         $token = $user->createToken('api-token')->plainTextToken;
 
-        return response()->json([
-            'message' => 'User logged in successfully.',
-            'data' => [
+        return $this->success(
+            [
                 'user' => new UserResource($user),
                 'token' => $token,
                 'token_type' => 'Bearer',
             ],
-        ]);
+            'User logged in successfully.'
+        );
     }
 
     public function logout(Request $request): JsonResponse
     {
         $request->user()->currentAccessToken()?->delete();
 
-        return response()->json([
-            'message' => 'User logged out successfully.',
-        ]);
+        return $this->success(message: 'User logged out successfully.');
     }
 }

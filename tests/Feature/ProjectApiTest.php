@@ -27,6 +27,7 @@ class ProjectApiTest extends TestCase
 
         $response
             ->assertCreated()
+            ->assertJsonPath('success', true)
             ->assertJsonPath('message', 'Project created successfully.')
             ->assertJsonPath('data.name', 'Website Redesign')
             ->assertJsonPath('data.status', ProjectStatus::Active->value);
@@ -51,6 +52,8 @@ class ProjectApiTest extends TestCase
 
         $response
             ->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('message', 'Projects retrieved successfully.')
             ->assertJsonCount(2, 'data')
             ->assertJsonStructure([
                 'data' => [
@@ -71,6 +74,8 @@ class ProjectApiTest extends TestCase
 
         $response
             ->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('message', 'Project retrieved successfully.')
             ->assertJsonPath('data.id', $project->id)
             ->assertJsonPath('data.name', $project->name);
     }
@@ -101,6 +106,7 @@ class ProjectApiTest extends TestCase
 
         $response
             ->assertOk()
+            ->assertJsonPath('success', true)
             ->assertJsonPath('message', 'Project updated successfully.')
             ->assertJsonPath('data.name', 'Updated Project')
             ->assertJsonPath('data.status', ProjectStatus::Completed->value);
@@ -125,7 +131,10 @@ class ProjectApiTest extends TestCase
         Sanctum::actingAs($project->user);
 
         $this->deleteJson("/api/projects/{$project->id}")
-            ->assertNoContent();
+            ->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('message', 'Project deleted successfully.')
+            ->assertJsonPath('data', null);
 
         $this->assertSoftDeleted('projects', [
             'id' => $project->id,

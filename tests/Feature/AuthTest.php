@@ -22,6 +22,7 @@ class AuthTest extends TestCase
 
         $response
             ->assertCreated()
+            ->assertJsonPath('success', true)
             ->assertJsonPath('message', 'User registered successfully.')
             ->assertJsonPath('data.user.email', 'ahmed@example.com')
             ->assertJsonStructure([
@@ -51,6 +52,7 @@ class AuthTest extends TestCase
 
         $response
             ->assertOk()
+            ->assertJsonPath('success', true)
             ->assertJsonPath('message', 'User logged in successfully.')
             ->assertJsonPath('data.user.email', 'ahmed@example.com')
             ->assertJsonPath('data.token_type', 'Bearer')
@@ -88,6 +90,7 @@ class AuthTest extends TestCase
 
         $response
             ->assertOk()
+            ->assertJsonPath('success', true)
             ->assertJsonPath('message', 'User logged out successfully.');
     }
 }

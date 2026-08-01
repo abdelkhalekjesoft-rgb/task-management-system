@@ -11,19 +11,19 @@ use App\Models\Project;
 use App\Models\Task;
 use App\Services\TaskService;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Support\Facades\Gate;
 
 class TaskController extends Controller
 {
     public function __construct(private readonly TaskService $taskService) {}
 
-    public function index(ListTasksRequest $request, Project $project): AnonymousResourceCollection
+    public function index(ListTasksRequest $request, Project $project): JsonResponse
     {
         Gate::authorize('viewAny', [Task::class, $project]);
 
-        return TaskResource::collection(
-            $this->taskService->paginateForProject($project, $request->validated())
+        return $this->success(
+            TaskResource::collection($this->taskService->paginateForProject($project, $request->validated())),
+            'Tasks retrieved successfully.'
         );
     }
 
@@ -33,10 +33,7 @@ class TaskController extends Controller
 
         $task = $this->taskService->createForProject($project, $request->validated());
 
-        return response()->json([
-            'message' => 'Task created successfully.',
-            'data' => new TaskResource($task),
-        ], 201);
+        return $this->success(new TaskResource($task), 'Task created successfully.', 201);
     }
 
     public function update(UpdateTaskRequest $request, Task $task): JsonResponse
@@ -45,10 +42,7 @@ class TaskController extends Controller
 
         $task = $this->taskService->update($task, $request->validated());
 
-        return response()->json([
-            'message' => 'Task updated successfully.',
-            'data' => new TaskResource($task),
-        ]);
+        return $this->success(new TaskResource($task), 'Task updated successfully.');
     }
 
     public function destroy(Task $task): JsonResponse
@@ -57,6 +51,6 @@ class TaskController extends Controller
 
         $this->taskService->delete($task);
 
-        return response()->json(null, 204);
+        return $this->success(message: 'Task deleted successfully.');
     }
 }

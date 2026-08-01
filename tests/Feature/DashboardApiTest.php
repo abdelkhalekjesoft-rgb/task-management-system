@@ -60,6 +60,8 @@ class DashboardApiTest extends TestCase
 
         $response
             ->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('message', 'Dashboard statistics retrieved successfully.')
             ->assertJsonPath('data.total_projects', 2)
             ->assertJsonPath('data.active_projects', 1)
             ->assertJsonPath('data.total_tasks', 3)

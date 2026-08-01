@@ -9,19 +9,19 @@ use App\Http\Resources\ProjectResource;
 use App\Models\Project;
 use App\Services\ProjectService;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Support\Facades\Gate;
 
 class ProjectController extends Controller
 {
     public function __construct(private readonly ProjectService $projectService) {}
 
-    public function index(): AnonymousResourceCollection
+    public function index(): JsonResponse
     {
         Gate::authorize('viewAny', Project::class);
 
-        return ProjectResource::collection(
-            $this->projectService->paginateForUser(request()->user())
+        return $this->success(
+            ProjectResource::collection($this->projectService->paginateForUser(request()->user())),
+            'Projects retrieved successfully.'
         );
     }
 
@@ -34,17 +34,14 @@ class ProjectController extends Controller
             $request->validated()
         );
 
-        return response()->json([
-            'message' => 'Project created successfully.',
-            'data' => new ProjectResource($project),
-        ], 201);
+        return $this->success(new ProjectResource($project), 'Project created successfully.', 201);
     }
 
-    public function show(Project $project): ProjectResource
+    public function show(Project $project): JsonResponse
     {
         Gate::authorize('view', $project);
 
-        return new ProjectResource($project);
+        return $this->success(new ProjectResource($project), 'Project retrieved successfully.');
     }
 
     public function update(UpdateProjectRequest $request, Project $project): JsonResponse
@@ -53,10 +50,7 @@ class ProjectController extends Controller
 
         $project = $this->projectService->update($project, $request->validated());
 
-        return response()->json([
-            'message' => 'Project updated successfully.',
-            'data' => new ProjectResource($project),
-        ]);
+        return $this->success(new ProjectResource($project), 'Project updated successfully.');
     }
 
     public function destroy(Project $project): JsonResponse
@@ -65,6 +59,6 @@ class ProjectController extends Controller
 
         $this->projectService->delete($project);
 
-        return response()->json(null, 204);
+        return $this->success(message: 'Project deleted successfully.');
     }
 }

@@ -31,6 +31,7 @@ class TaskApiTest extends TestCase
 
         $response
             ->assertCreated()
+            ->assertJsonPath('success', true)
             ->assertJsonPath('message', 'Task created successfully.')
             ->assertJsonPath('data.title', 'Prepare API documentation')
             ->assertJsonPath('data.priority', TaskPriority::High->value);
@@ -66,6 +67,8 @@ class TaskApiTest extends TestCase
 
         $response
             ->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('message', 'Tasks retrieved successfully.')
             ->assertJsonCount(2, 'data')
             ->assertJsonStructure([
                 'data' => [
@@ -107,6 +110,7 @@ class TaskApiTest extends TestCase
 
         $response
             ->assertOk()
+            ->assertJsonPath('success', true)
             ->assertJsonCount(1, 'data')
             ->assertJsonPath('data.0.title', 'Write API documentation');
     }
@@ -136,6 +140,7 @@ class TaskApiTest extends TestCase
 
         $response
             ->assertOk()
+            ->assertJsonPath('success', true)
             ->assertJsonPath('message', 'Task updated successfully.')
             ->assertJsonPath('data.title', 'Updated task title')
             ->assertJsonPath('data.status', TaskStatus::InProgress->value);
@@ -159,7 +164,10 @@ class TaskApiTest extends TestCase
         Sanctum::actingAs($task->project->user);
 
         $this->deleteJson("/api/tasks/{$task->id}")
-            ->assertNoContent();
+            ->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('message', 'Task deleted successfully.')
+            ->assertJsonPath('data', null);
 
         $this->assertSoftDeleted('tasks', [
             'id' => $task->id,
