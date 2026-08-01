@@ -79,6 +79,26 @@ Run Laravel Pint formatting:
 ./vendor/bin/pint
 ```
 
+## Postman Collection
+
+Import the Postman collection and local environment from:
+
+```text
+docs/postman_collection.json
+docs/postman_environment.json
+```
+
+Select the `Task Management System API - Local` environment in Postman. It includes:
+
+```text
+base_url=http://127.0.0.1:8000/api
+token=
+project_id=1
+task_id=1
+```
+
+Run the `Login` request first; it stores the returned Sanctum token in `token` for authenticated requests.
+
 ## Authentication
 
 Send JSON requests with:
