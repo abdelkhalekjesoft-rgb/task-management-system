@@ -115,6 +115,96 @@ class TaskApiTest extends TestCase
             ->assertJsonPath('data.0.title', 'Write API documentation');
     }
 
+    public function test_user_can_filter_tasks_by_status_only(): void
+    {
+        $project = Project::factory()->create();
+
+        Task::factory()->create([
+            'project_id' => $project->id,
+            'title' => 'Prepare sprint plan',
+            'status' => TaskStatus::Todo,
+        ]);
+        Task::factory()->create([
+            'project_id' => $project->id,
+            'title' => 'Deploy completed release',
+            'status' => TaskStatus::Done,
+        ]);
+
+        Sanctum::actingAs($project->user);
+
+        $response = $this->getJson("/api/projects/{$project->id}/tasks?status=todo");
+
+        $response
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.title', 'Prepare sprint plan')
+            ->assertJsonPath('data.0.status', TaskStatus::Todo->value);
+    }
+
+    public function test_user_can_filter_tasks_by_priority_only(): void
+    {
+        $project = Project::factory()->create();
+
+        Task::factory()->create([
+            'project_id' => $project->id,
+            'title' => 'Fix production issue',
+            'priority' => TaskPriority::High,
+        ]);
+        Task::factory()->create([
+            'project_id' => $project->id,
+            'title' => 'Refine backlog labels',
+            'priority' => TaskPriority::Low,
+        ]);
+
+        Sanctum::actingAs($project->user);
+
+        $response = $this->getJson("/api/projects/{$project->id}/tasks?priority=high");
+
+        $response
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.title', 'Fix production issue')
+            ->assertJsonPath('data.0.priority', TaskPriority::High->value);
+    }
+
+    public function test_task_search_is_scoped_to_the_requested_project(): void
+    {
+        $project = Project::factory()->create();
+        $otherProject = Project::factory()->create();
+
+        Task::factory()->create([
+            'project_id' => $project->id,
+            'title' => 'Write API documentation',
+        ]);
+        Task::factory()->create([
+            'project_id' => $otherProject->id,
+            'title' => 'Write API documentation for another project',
+        ]);
+
+        Sanctum::actingAs($project->user);
+
+        $response = $this->getJson("/api/projects/{$project->id}/tasks?search=documentation");
+
+        $response
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.project_id', $project->id)
+            ->assertJsonPath('data.0.title', 'Write API documentation');
+    }
+
+    public function test_task_filters_require_valid_values(): void
+    {
+        $project = Project::factory()->create();
+
+        Sanctum::actingAs($project->user);
+
+        $response = $this->getJson("/api/projects/{$project->id}/tasks?status=blocked&priority=urgent");
+
+        $response
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['status', 'priority']);
+    }
+
     public function test_user_cannot_list_tasks_for_another_users_project(): void
     {
         $project = Project::factory()->create();
