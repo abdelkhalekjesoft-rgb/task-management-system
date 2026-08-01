@@ -4,7 +4,6 @@ namespace Tests\Feature;
 
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
 class AuthTest extends TestCase
@@ -36,6 +35,39 @@ class AuthTest extends TestCase
         $this->assertDatabaseHas('users', [
             'email' => 'ahmed@example.com',
         ]);
+        $this->assertDatabaseCount('personal_access_tokens', 1);
+    }
+
+    public function test_user_cannot_register_with_invalid_data(): void
+    {
+        $response = $this->postJson('/api/register', [
+            'name' => '',
+            'email' => 'not-an-email',
+            'password' => 'short',
+            'password_confirmation' => 'different',
+        ]);
+
+        $response
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['name', 'email', 'password']);
+    }
+
+    public function test_user_cannot_register_with_duplicate_email(): void
+    {
+        User::factory()->create([
+            'email' => 'ahmed@example.com',
+        ]);
+
+        $response = $this->postJson('/api/register', [
+            'name' => 'Ahmed Abdelkhalek',
+            'email' => 'ahmed@example.com',
+            'password' => 'password',
+            'password_confirmation' => 'password',
+        ]);
+
+        $response
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['email']);
     }
 
     public function test_user_can_login(): void
@@ -61,6 +93,20 @@ class AuthTest extends TestCase
                     'token',
                 ],
             ]);
+
+        $this->assertDatabaseCount('personal_access_tokens', 1);
+    }
+
+    public function test_user_cannot_login_with_invalid_payload(): void
+    {
+        $response = $this->postJson('/api/login', [
+            'email' => '',
+            'password' => '',
+        ]);
+
+        $response
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['email', 'password']);
     }
 
     public function test_user_cannot_login_with_invalid_credentials(): void
@@ -83,14 +129,25 @@ class AuthTest extends TestCase
     public function test_user_can_logout(): void
     {
         $user = User::factory()->create();
+        $token = $user->createToken('api-token');
 
-        Sanctum::actingAs($user);
-
-        $response = $this->postJson('/api/logout');
+        $response = $this
+            ->withHeader('Authorization', 'Bearer '.$token->plainTextToken)
+            ->postJson('/api/logout');
 
         $response
             ->assertOk()
             ->assertJsonPath('success', true)
             ->assertJsonPath('message', 'User logged out successfully.');
+
+        $this->assertDatabaseMissing('personal_access_tokens', [
+            'id' => $token->accessToken->id,
+        ]);
+    }
+
+    public function test_user_cannot_logout_without_token(): void
+    {
+        $this->postJson('/api/logout')
+            ->assertUnauthorized();
     }
 }
